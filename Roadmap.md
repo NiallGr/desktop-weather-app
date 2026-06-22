@@ -19,6 +19,8 @@ On launch, the app shows the Current Conditions (temperature and condition) for 
 
 **Why first:** it's the thinnest slice that touches every layer and proves the riskiest seam — the live Open-Meteo call mapped to a typed `Forecast`. It also scaffolds the solution (project structure, DI, Serilog, and the Tier-1 `ForecastService` test harness with a fake `IHttpClientFactory`) that every later Feature builds on.
 
+**Status:** **Published to ADO** — Feature [#94879](https://dev.azure.com/Enate/Nialls%20Factory%20DevTest/_workitems/edit/94879), 2026-06-22.
+
 ---
 
 ## Feature 2: Pick your city from the curated list
