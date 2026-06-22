@@ -95,7 +95,7 @@ MainViewModel (on window open) → IForecastService.GetCurrentAsync(London)
 
 ## Pre-implementation tasks
 
-- **Egress allowlist:** `api.open-meteo.com` must be added to the environment's network egress allowlist before implementation. It is required both to ground the external seam (below) and to capture the Tier-1 happy-path fixture. This is a remote-execution-environment network-policy change, outside the codebase.
+- **Egress allowlist (runtime only):** `api.open-meteo.com` must be added to the environment's network egress allowlist for any environment that will **run** the app (Plan Task 8 Step 3 manual `dotnet run` smoke test, plus end-user use). The Tier-1 test suite does **not** need this — it replays the committed fixture against a fake `IHttpClientFactory`. Seam 1 `(e)` is **grounded** (live capture committed 2026-06-22); no remaining doc-stage blocker.
 
 ## Seam inventory
 
@@ -107,8 +107,8 @@ MainViewModel (on window open) → IForecastService.GetCurrentAsync(London)
   - **Request:** `GET https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,weather_code&timezone=auto` over HTTPS.
   - **Success payload:** HTTP 200, `application/json`; body has a top-level `timezone` (string, IANA zone name, non-null) and a `current` object (non-null) containing `time` (string, ISO-8601 local, no offset, non-null), `temperature_2m` (number, °C, non-null), and `weather_code` (integer WMO code, non-null).
   - **Shape/nullability handling:** any of {non-200, non-JSON, absent `current`, absent/null any of the three fields, unparseable `time`/`timezone`} → `ForecastResult.Failure(BadResponse)`; transport failure/timeout → `Failure(NetworkUnavailable)`. An **unknown** integer `weather_code` is valid wire data → maps to `WeatherCondition.Unknown` (not a failure). On `Success`, `CurrentConditions` is fully populated with no null fields.
-- **(d) proof:** Tier-1 recorded-replay test in `DesktopWeatherApp.Core.Tests` — fake `IHttpClientFactory` replays a JSON fixture **captured from the live Open-Meteo API** (not hand-written), asserting the typed `CurrentConditions` and each failure-mapping case. Real-IO side: `System.Text.Json` parse + NodaTime mapping execute for real.
-- **(e) authority:** Open-Meteo Forecast API docs — `https://open-meteo.com/en/docs`. **NOT YET GROUNDED:** the docs site returned 403 and `api.open-meteo.com` is not in the egress allowlist, so the exact field names, types, and `time` format could not be verified live during this brainstorm. Marked **pending**: the contract above is from the documented API and MUST be confirmed against the live source (and the fixture captured) once the host is allowlisted, before implementation.
+- **(d) proof:** Tier-1 recorded-replay test in `DesktopWeatherApp.Core.Tests` — fake `IHttpClientFactory` replays the JSON fixture **captured live from `https://api.open-meteo.com/v1/forecast?latitude=51.5074&longitude=-0.1278&current=temperature_2m,weather_code&timezone=auto` on 2026-06-22 17:30 Europe/London** (committed verbatim, not hand-edited), asserting the typed `CurrentConditions` and each failure-mapping case. Real-IO side: `System.Text.Json` parse + NodaTime mapping execute for real.
+- **(e) authority:** Open-Meteo Forecast API itself — **GROUNDED 2026-06-22:** a live `/v1/forecast` response was captured (see (d) above) and the contract above was verified against it field-by-field: top-level `timezone` is `"Europe/London"` (IANA string); `current.time` is `"2026-06-22T17:30"` (ISO-8601 local, no offset, **no seconds** — confirming the Plan's `LocalDateTimePattern "uuuu-MM-dd'T'HH:mm"` is correct); `current.temperature_2m` is a number (`26.7`); `current.weather_code` is an integer (`0` → Clear). The response carries additional fields (`generationtime_ms`, `utc_offset_seconds`, `timezone_abbreviation`, `elevation`, `current_units.interval`) which our DTO ignores by design. No authentication header was sent or required.
 
 ### Seam 2: NodaTime IANA timezone resolution (host-OS / runtime, internal)
 - **(a) class:** host-OS / runtime — a data-format/version facet over the bundled timezone database. **Internal** (no network), but a real boundary because the TZDB ships with the NodaTime package version, not with our code.
@@ -122,15 +122,8 @@ MainViewModel (on window open) → IForecastService.GetCurrentAsync(London)
 
 ## Feature-doc-gauntlet sign-off
 
-- **Result:** fail
+- **Result:** pass
 - **Date:** 2026-06-22
-- **Reason:** feature-docs
-- **Summary:** check-seam-cynicism failed on the one external seam (Open-Meteo): its `(e)` authority is ungrounded and its `(d)` proof is a self-written fixture, not one captured live — an assumed external contract. check-doc-adr-consistency and check-artefact-consistency both passed; all upstream docs are now present in the repo, so the prior run's "missing/orphaned files" findings are retired.
-- **Leaves:** check-seam-cynicism (fail), check-doc-adr-consistency (pass), check-artefact-consistency (pass)
-- **Open findings (gating):**
-  1. *(seam-cynicism)* Seam 1 `(e)` authority NOT YET GROUNDED — `api.open-meteo.com` not allowlisted, docs returned 403; the field names (`temperature_2m`, `weather_code`, `time`, `timezone`), their types, and the "ISO-8601 local, no offset" `time` format in `(c)` are memory-sourced, not verified against the live source.
-  2. *(seam-cynicism)* Seam 1 `(d)` proof / Plan Task 4 Step 1 — the committed fixture `Fixtures/london-current.json` is hand-written/"representative" and flagged to be replaced with a live capture. For an external seam, `(d)` must be real I/O or a fixture captured FROM the service; a self-written fixture re-encodes the assumption, so a green Tier-1 suite proves only self-consistency, not agreement with Open-Meteo.
-  3. *(seam-cynicism)* Seam 1 `(c)` — the "ISO-8601 local, no offset" `time` format drives the Plan's `LocalDateTimePattern "uuuu-MM-dd'T'HH:mm"`; if the live response carries seconds/an offset/a different shape, every Success becomes BadResponse. This load-bearing format claim is unverified against the live source.
-  4. *(seam-cynicism, minor)* ~~Spec `## Seam inventory` has no row for the host-OS/runtime + NodaTime-TZDB facet.~~ **RESOLVED 2026-06-22:** added as **Seam 2** (NodaTime IANA timezone resolution) — pins the `Tzdb` resolver, unknown-zone-name → `BadResponse` (no throw), and lenient DST gap/fold handling, with an explicit unknown-zone test slated for Task 5. Not blocked on egress (library-internal).
-- **Open findings remaining: 1–3** (all the same root cause — the Open-Meteo seam is ungrounded). Finding 4 is closed.
-- **Next step:** The remaining fix is **grounding the seam**, not rewriting prose. Add `api.open-meteo.com` to the environment egress allowlist, capture a real `/v1/forecast` response, verify the field names / types / `time` format against it, replace `Fixtures/london-current.json` with the captured fixture, and mark Seam 1 `(e)` grounded. Then re-run `/feature-doc-gauntlet` from a fresh session. `enate-to-stories` must not break this Feature into stories until the sign-off shows `Result: pass`.
+- **Summary:** All three leaves pass. Seam 1 (Open-Meteo) is grounded with a verbatim live capture and a verified field-by-field `(c)` contract; Seam 2 (NodaTime TZDB) has falsifiable `(c)` and a real-IO `(d)` covering both happy-path resolution and the unknown-IANA-zone negative path; Spec/Plan introduce no drift from ADR-0001 or the Technical-Context Overriding Principles; no orphaned references or contradictions touching Feature 1.
+- **Leaves:** check-seam-cynicism (pass), check-doc-adr-consistency (pass), check-artefact-consistency (pass)
+- **Next step:** Feature is cleared for `/enate-to-stories`. _Note: this sign-off becomes stale if the Spec or Plan is materially edited — re-run the gauntlet before story breakdown if either changes._
