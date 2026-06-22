@@ -16,7 +16,7 @@
 
 > An AFK Developer Agent picking up this plan MUST load every file in the Context references block before writing code.
 
-> **Pre-implementation blocker (from the spec):** `api.open-meteo.com` must be added to the environment's network egress allowlist before this plan runs — it is required to ground the Open-Meteo seam (Seam 1 authority, currently *pending*) and to capture the real happy-path JSON fixture in Task 4. Confirm the recorded fixture matches a live response before relying on the Tier-1 suite.
+> **Egress note (runtime only):** Seam 1 authority is **grounded** and the Task 4 fixture is the verbatim live capture (no further grounding work needed). `api.open-meteo.com` must, however, still be on the egress allowlist of any environment that will **run** the app — Task 8 Step 3 (manual `dotnet run` smoke test) and end-user use both need it. The Tier-1 suite does not.
 
 ---
 
@@ -391,15 +391,9 @@ The (d) proof is this Task's boundary-crossing test: a fixture **captured from t
 
 - [ ] **Step 1: Add the recorded fixture**
 
-Create `tests/DesktopWeatherApp.Core.Tests/Fixtures/london-current.json`. This is a representative Open-Meteo response; **it MUST be replaced with / verified against a real response captured from `api.open-meteo.com` once the host is allowlisted** (Seam 1 authority):
+Create `tests/DesktopWeatherApp.Core.Tests/Fixtures/london-current.json`. **This is the real response captured from `https://api.open-meteo.com/v1/forecast?latitude=51.5074&longitude=-0.1278&current=temperature_2m,weather_code&timezone=auto` (captured 2026-06-22 17:30 Europe/London); use it verbatim, do not hand-edit values:**
 ```json
-{
-  "latitude": 51.5,
-  "longitude": -0.12,
-  "timezone": "Europe/London",
-  "current_units": { "time": "iso8601", "temperature_2m": "°C", "weather_code": "wmo code" },
-  "current": { "time": "2026-06-22T15:00", "interval": 900, "temperature_2m": 14.3, "weather_code": 3 }
-}
+{"latitude":51.5,"longitude":-0.25,"generationtime_ms":0.23174285888671875,"utc_offset_seconds":3600,"timezone":"Europe/London","timezone_abbreviation":"GMT+1","elevation":16.0,"current_units":{"time":"iso8601","interval":"seconds","temperature_2m":"°C","weather_code":"wmo code"},"current":{"time":"2026-06-22T17:30","interval":900,"temperature_2m":26.7,"weather_code":0}}
 ```
 
 In `tests/DesktopWeatherApp.Core.Tests/DesktopWeatherApp.Core.Tests.csproj`, ensure fixtures copy to output by adding inside a `<ItemGroup>`:
@@ -488,11 +482,11 @@ public class ForecastServiceTests
         var result = await service.GetCurrentAsync(London, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        result.Conditions!.TemperatureCelsius.Should().Be(14.3);
-        result.Conditions.Condition.Should().Be(WeatherCondition.Cloudy); // weather_code 3
+        result.Conditions!.TemperatureCelsius.Should().Be(26.7);
+        result.Conditions.Condition.Should().Be(WeatherCondition.Clear); // weather_code 0
         result.Conditions.ObservedAt.Zone.Id.Should().Be("Europe/London");
-        result.Conditions.ObservedAt.Hour.Should().Be(15);
-        result.Conditions.ObservedAt.Minute.Should().Be(0);
+        result.Conditions.ObservedAt.Hour.Should().Be(17);
+        result.Conditions.ObservedAt.Minute.Should().Be(30);
     }
 
     [Fact]
@@ -746,12 +740,28 @@ Append these methods inside the `ForecastServiceTests` class in `tests/DesktopWe
         result.IsSuccess.Should().BeTrue();
         result.Conditions!.Condition.Should().Be(WeatherCondition.Unknown);
     }
+
+    // Seam 2 (NodaTime TZDB) negative-path proof: an IANA name absent from the
+    // bundled TZDB → GetZoneOrNull returns null → BadResponse, never throws.
+    [Fact]
+    public async Task Returns_BadResponse_when_timezone_is_not_a_known_IANA_name()
+    {
+        const string body =
+            "{\"timezone\":\"Atlantis/Lost\",\"current\":" +
+            "{\"time\":\"2026-06-22T15:00\",\"temperature_2m\":10.0,\"weather_code\":0}}";
+        var service = ServiceReturning(new StubHttpMessageHandler(HttpStatusCode.OK, body));
+
+        var result = await service.GetCurrentAsync(London, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Be(ForecastError.BadResponse);
+    }
 ```
 
 - [ ] **Step 2: Run to verify the new tests pass**
 
 Run: `dotnet test tests/DesktopWeatherApp.Core.Tests --filter ForecastServiceTests`
-Expected: PASS (7 tests total — the 2 from Task 4 plus these 5). The implementation from Task 4 already handles these paths; if any fails, fix `ForecastService.Parse`/error handling until green.
+Expected: PASS (8 tests total — the 2 from Task 4 plus these 6). The implementation from Task 4 already handles these paths (Seam 2's `zone is null → BadResponse` branch is in `ForecastService.Parse`); if any fails, fix `ForecastService.Parse`/error handling until green.
 
 - [ ] **Step 3: Commit**
 
@@ -1031,7 +1041,7 @@ git commit -m "feat(app): Avalonia UI, DI, Serilog, hard-coded London location"
 - [ ] **Step 1: Run the whole test suite**
 
 Run: `dotnet test`
-Expected: PASS — all WeatherCodeMapper, ForecastResult, and ForecastService tests green (17 tests total).
+Expected: PASS — all WeatherCodeMapper, ForecastResult, and ForecastService tests green (20 tests total: 10 WeatherCodeMapper InlineData rows + 2 ForecastResult facts + 8 ForecastService cases).
 
 - [ ] **Step 2: Format check**
 
