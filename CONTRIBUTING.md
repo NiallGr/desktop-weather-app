@@ -15,3 +15,14 @@ When the orchestrator delivers work autonomously it uses **one `story/<issue#>-<
 Story**. The agent works only inside that branch; the orchestrator owns the branch lifecycle (the
 agent performs no branch operations). On `Approved`, the Story branch is **squash-merged into
 `main`**. A single Story is in flight at a time.
+
+## Enforcement caveat — `main` is NOT server-side protected
+
+This repo is private on a free personal GitHub plan, where branch protection and rulesets are
+disabled. The two branching rules above are **convention only** — direct pushes to `main` are
+technically possible and the `ci` check is advisory, not blocking. Treat the rules as binding
+anyway: every change goes through a PR; never push to `main` directly.
+
+To enforce them server-side, flip the repo to public or upgrade to GitHub Pro, then apply the
+ruleset commands documented in the `/init-repo` skill (required check `ci`, linear history,
+conversation resolution, no force-push, no deletions, squash-only).
