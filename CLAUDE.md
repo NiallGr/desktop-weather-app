@@ -11,6 +11,13 @@ https://github.com/kitcox-dev/enate-claude-skills/blob/main/docs/using-the-sdlc-
 
 ## Dev commands
 
-<!-- TODO(init): fill once the stack is chosen — install / test tiers / run.
-     Written by /init-tech-context or the first feature build. -->
-_Dev commands not set yet — filled when the stack is chosen (`/init-tech-context`)._
+Stack: .NET 8 + Avalonia 11 + CommunityToolkit.Mvvm. See `Technical-Context.MD` for the full contract.
+
+- Restore: `dotnet restore`
+- Build: `dotnet build`
+- Run: `dotnet run --project src/DesktopWeatherApp` _(project path lands when the scaffold does)_
+- Test (Tier 1): `dotnet test`
+- Format check: `dotnet format --verify-no-changes`
+- Format apply: `dotnet format`
+
+Tier 2 / Tier 3 commands land alongside the scaffolds that introduce them.
