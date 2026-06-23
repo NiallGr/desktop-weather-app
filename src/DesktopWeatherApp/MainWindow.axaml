@@ -1,9 +1,18 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        xmlns:vm="using:DesktopWeatherApp.ViewModels"
         x:Class="DesktopWeatherApp.MainWindow"
-        Title="DesktopWeatherApp">
-    Welcome to Avalonia!
+        x:DataType="vm:MainViewModel"
+        Width="360" Height="180" Title="Weather">
+  <Panel Margin="24">
+    <TextBlock Text="loading…"
+               IsVisible="{Binding IsLoading}"
+               VerticalAlignment="Center" HorizontalAlignment="Center"/>
+    <TextBlock Text="{Binding Summary}"
+               IsVisible="{Binding HasData}"
+               FontSize="18" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+    <TextBlock Text="{Binding Error}"
+               IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}"
+               Foreground="#B00020" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+  </Panel>
 </Window>
