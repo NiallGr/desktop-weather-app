@@ -1,0 +1,43 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{98FA6B50-B595-483B-ADC3-5E1AAC37F27D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DesktopWeatherApp.Core", "src\DesktopWeatherApp.Core\DesktopWeatherApp.Core.csproj", "{4C7EDEB7-B378-45DA-A9D6-83F7897B6E0B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DesktopWeatherApp", "src\DesktopWeatherApp\DesktopWeatherApp.csproj", "{7EA4AB13-4C02-43C1-BE7A-F7C1350B8C34}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{5D134B30-B445-42CF-B84E-6DABB7C4142C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DesktopWeatherApp.Core.Tests", "tests\DesktopWeatherApp.Core.Tests\DesktopWeatherApp.Core.Tests.csproj", "{D58CAF33-91B1-4817-91EC-B97CBA72670B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4C7EDEB7-B378-45DA-A9D6-83F7897B6E0B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4C7EDEB7-B378-45DA-A9D6-83F7897B6E0B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4C7EDEB7-B378-45DA-A9D6-83F7897B6E0B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4C7EDEB7-B378-45DA-A9D6-83F7897B6E0B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7EA4AB13-4C02-43C1-BE7A-F7C1350B8C34}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7EA4AB13-4C02-43C1-BE7A-F7C1350B8C34}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7EA4AB13-4C02-43C1-BE7A-F7C1350B8C34}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7EA4AB13-4C02-43C1-BE7A-F7C1350B8C34}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D58CAF33-91B1-4817-91EC-B97CBA72670B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D58CAF33-91B1-4817-91EC-B97CBA72670B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D58CAF33-91B1-4817-91EC-B97CBA72670B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D58CAF33-91B1-4817-91EC-B97CBA72670B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{4C7EDEB7-B378-45DA-A9D6-83F7897B6E0B} = {98FA6B50-B595-483B-ADC3-5E1AAC37F27D}
+		{7EA4AB13-4C02-43C1-BE7A-F7C1350B8C34} = {98FA6B50-B595-483B-ADC3-5E1AAC37F27D}
+		{D58CAF33-91B1-4817-91EC-B97CBA72670B} = {5D134B30-B445-42CF-B84E-6DABB7C4142C}
+	EndGlobalSection
+EndGlobal
