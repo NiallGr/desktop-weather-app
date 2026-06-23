@@ -47,4 +47,77 @@ public class ForecastServiceTests
         handler.LastRequestUri.AbsoluteUri.Should().Contain("current=temperature_2m,weather_code");
         handler.LastRequestUri.AbsoluteUri.Should().Contain("timezone=auto");
     }
+
+    [Fact]
+    public async Task Returns_NetworkUnavailable_when_transport_throws()
+    {
+        var handler = new StubHttpMessageHandler(_ => throw new HttpRequestException("down"));
+        var service = ServiceReturning(handler);
+
+        var result = await service.GetCurrentAsync(London, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Be(ForecastError.NetworkUnavailable);
+    }
+
+    [Fact]
+    public async Task Returns_BadResponse_on_non_success_status()
+    {
+        var service = ServiceReturning(new StubHttpMessageHandler(HttpStatusCode.InternalServerError, "{}"));
+
+        var result = await service.GetCurrentAsync(London, CancellationToken.None);
+
+        result.Error.Should().Be(ForecastError.BadResponse);
+    }
+
+    [Fact]
+    public async Task Returns_BadResponse_on_unparseable_body()
+    {
+        var service = ServiceReturning(new StubHttpMessageHandler(HttpStatusCode.OK, "not json"));
+
+        var result = await service.GetCurrentAsync(London, CancellationToken.None);
+
+        result.Error.Should().Be(ForecastError.BadResponse);
+    }
+
+    [Fact]
+    public async Task Returns_BadResponse_when_current_block_missing()
+    {
+        var service = ServiceReturning(
+            new StubHttpMessageHandler(HttpStatusCode.OK, "{\"timezone\":\"Europe/London\"}"));
+
+        var result = await service.GetCurrentAsync(London, CancellationToken.None);
+
+        result.Error.Should().Be(ForecastError.BadResponse);
+    }
+
+    [Fact]
+    public async Task Maps_unknown_weather_code_to_Unknown_not_failure()
+    {
+        const string body =
+            "{\"timezone\":\"Europe/London\",\"current\":" +
+            "{\"time\":\"2026-06-22T15:00\",\"temperature_2m\":10.0,\"weather_code\":1234}}";
+        var service = ServiceReturning(new StubHttpMessageHandler(HttpStatusCode.OK, body));
+
+        var result = await service.GetCurrentAsync(London, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Conditions!.Condition.Should().Be(WeatherCondition.Unknown);
+    }
+
+    // Seam 2 (NodaTime TZDB) negative-path proof: an IANA name absent from the
+    // bundled TZDB → GetZoneOrNull returns null → BadResponse, never throws.
+    [Fact]
+    public async Task Returns_BadResponse_when_timezone_is_not_a_known_IANA_name()
+    {
+        const string body =
+            "{\"timezone\":\"Atlantis/Lost\",\"current\":" +
+            "{\"time\":\"2026-06-22T15:00\",\"temperature_2m\":10.0,\"weather_code\":0}}";
+        var service = ServiceReturning(new StubHttpMessageHandler(HttpStatusCode.OK, body));
+
+        var result = await service.GetCurrentAsync(London, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Be(ForecastError.BadResponse);
+    }
 }
