@@ -28,4 +28,10 @@
     <ProjectReference Include="..\..\src\DesktopWeatherApp.Core\DesktopWeatherApp.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Fixtures\london-current.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
